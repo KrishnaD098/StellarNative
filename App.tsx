@@ -1,11 +1,45 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View, TextInput, TouchableOpacity, FlatList } from 'react-native';
+import { StyleSheet, Text, View, TextInput, TouchableOpacity, FlatList, Alert } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function App() {
   const [name, setName] = useState('');
   const [note, setNote] = useState('');
   const [notes, setNotes] = useState<any[]>([]);
+
+  // 1. LOAD notes from disk when app starts
+  useEffect(() => {
+    const loadNotes = async () => {
+      try {
+        const jsonValue = await AsyncStorage.getItem('@stellar_notes');
+        if (jsonValue !== null) {
+          setNotes(JSON.parse(jsonValue));
+        }
+      } catch (e) {
+        console.error('Failed to load notes', e);
+      }
+    };
+    loadNotes();
+  }, []);
+
+  // 2. SAVE notes to disk whenever the notes list changes
+  useEffect(() => {
+    const saveNotes = async () => {
+      try {
+        const jsonValue = JSON.stringify(notes);
+        await AsyncStorage.setItem('@stellar_notes', jsonValue);
+      } catch (e) {
+        console.error('Failed to save notes', e);
+      }
+    };
+    
+    // Only save if we actually have notes or if it's an intentional clear
+    // (Prevents overwriting data with an empty array on first render)
+    if (notes.length > 0 || (notes.length === 0)) {
+      saveNotes();
+    }
+  }, [notes]);
 
   const handleSaveNote = () => {
     if (name.trim() === '' || note.trim() === '') return;
@@ -20,6 +54,21 @@ export default function App() {
     setNotes([newNote, ...notes]);
     setName('');
     setNote('');
+  };
+
+  const deleteNote = (id: string) => {
+    Alert.alert(
+      "Delete Note",
+      "Are you sure you want to remove this investor note?",
+      [
+        { text: "Cancel", style: "cancel" },
+        { 
+          text: "Delete", 
+          style: "destructive", 
+          onPress: () => setNotes(notes.filter(item => item.id !== id)) 
+        }
+      ]
+    );
   };
 
   return (
@@ -65,13 +114,18 @@ export default function App() {
         style={styles.list}
         contentContainerStyle={styles.listContent}
         renderItem={({ item }) => (
-          <View style={styles.noteCard}>
-            <View style={styles.noteHeader}>
-              <Text style={styles.noteName}>{item.name}</Text>
-              <Text style={styles.noteRating}>{item.rating}</Text>
+          <TouchableOpacity 
+            onLongPress={() => deleteNote(item.id)}
+            activeOpacity={0.7}
+          >
+            <View style={styles.noteCard}>
+              <View style={styles.noteHeader}>
+                <Text style={styles.noteName}>{item.name}</Text>
+                <Text style={styles.noteRating}>{item.rating}</Text>
+              </View>
+              <Text style={styles.noteText}>{item.note}</Text>
             </View>
-            <Text style={styles.noteText}>{item.note}</Text>
-          </View>
+          </TouchableOpacity>
         )}
       />
 
