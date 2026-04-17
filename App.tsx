@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View, TextInput, TouchableOpacity, FlatList, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Haptics from 'expo-haptics';
 
 export default function App() {
   const [name, setName] = useState('');
   const [note, setNote] = useState('');
+  const [rating, setRating] = useState(3);
   const [notes, setNotes] = useState<any[]>([]);
 
   // 1. LOAD notes from disk when app starts
@@ -34,8 +36,6 @@ export default function App() {
       }
     };
     
-    // Only save if we actually have notes or if it's an intentional clear
-    // (Prevents overwriting data with an empty array on first render)
     if (notes.length > 0 || (notes.length === 0)) {
       saveNotes();
     }
@@ -44,16 +44,20 @@ export default function App() {
   const handleSaveNote = () => {
     if (name.trim() === '' || note.trim() === '') return;
 
+    // Trigger Heavy Impact Haptic (more noticeable)
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+
     const newNote = {
       id: Date.now().toString(),
       name: name,
       note: note,
-      rating: '⭐⭐⭐⭐⭐',
+      rating: '⭐'.repeat(rating),
     };
 
     setNotes([newNote, ...notes]);
     setName('');
     setNote('');
+    setRating(3); // Reset rating to default
   };
 
   const deleteNote = (id: string) => {
@@ -99,7 +103,15 @@ export default function App() {
 
         <View style={styles.ratingRow}>
           <Text style={styles.label}>Interest:</Text>
-          <Text style={styles.stars}>⭐⭐⭐⭐⭐</Text>
+          <View style={styles.starContainer}>
+            {[1, 2, 3, 4, 5].map((num) => (
+              <TouchableOpacity key={num} onPress={() => setRating(num)}>
+                <Text style={styles.stars}>
+                  {num <= rating ? '⭐' : '☆'}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
 
         <TouchableOpacity style={styles.button} onPress={handleSaveNote}>
@@ -190,7 +202,11 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   stars: {
-    fontSize: 18,
+    fontSize: 24,
+    marginHorizontal: 2,
+  },
+  starContainer: {
+    flexDirection: 'row',
   },
   button: {
     backgroundColor: '#007AFF',
