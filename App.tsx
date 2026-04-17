@@ -1,7 +1,27 @@
+import React, { useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View, TextInput, TouchableOpacity } from 'react-native';
 
 export default function App() {
+  const [name, setName] = useState('');
+  const [note, setNote] = useState('');
+  const [notes, setNotes] = useState<any[]>([]);
+
+  const handleSaveNote = () => {
+    if (name.trim() === '' || note.trim() === '') return; // Don't save empty notes
+
+    const newNote = {
+      id: Date.now().toString(),
+      name: name,
+      note: note,
+      rating: '⭐⭐⭐⭐⭐', // Placeholder for now
+    };
+
+    setNotes([newNote, ...notes]); // Add new note to the top of the list
+    setName(''); // Clear name input
+    setNote(''); // Clear note input
+  };
+
   return (
     <View style={styles.container}>
       {/* 1. Header Area */}
@@ -12,6 +32,8 @@ export default function App() {
       <TextInput 
         placeholder="Investor Name" 
         style={styles.input}
+        value={name}
+        onChangeText={setName}
       />
 
       <TextInput 
@@ -19,6 +41,8 @@ export default function App() {
         style={[styles.input, styles.textArea]}
         multiline={true}
         numberOfLines={4}
+        value={note}
+        onChangeText={setNote}
       />
 
       {/* 3. Star Rating Placeholder */}
@@ -28,7 +52,7 @@ export default function App() {
       </View>
 
       {/* 4. Action Button */}
-      <TouchableOpacity style={styles.button}>
+      <TouchableOpacity style={styles.button} onPress={handleSaveNote}>
         <Text style={styles.buttonText}>Save Note</Text>
       </TouchableOpacity>
 
